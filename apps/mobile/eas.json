@@ -1,0 +1,14 @@
+{
+  "cli": { "version": ">= 16.0.0", "appVersionSource": "local" },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_PUBLIC_CHAIN": "bscTestnet", "EXPO_PUBLIC_API_URL": "http://94.237.48.97:8080" }
+    },
+    "production": {
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_PUBLIC_CHAIN": "bscTestnet", "EXPO_PUBLIC_API_URL": "http://94.237.48.97:8080" }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+'npx hardhat clean' running (wd: /home/claude/jansetu/contracts)
+'npx hardhat clean --global' running (wd: /home/claude/jansetu/contracts)
+Problem executing hardhat: ◇ injected env (0) from .env
+◇ injected env (0) from .env
+
+'npx hardhat compile --force' running (wd: /home/claude/jansetu/contracts)
+
+Detector: incorrect-equality
+JanSetuFaucet.nextClaimAt(address) (contracts/core/JanSetuFaucet.sol#61-64) uses a dangerous strict equality:
+	- last == 0 (contracts/core/JanSetuFaucet.sol#63)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+
+Detector: reentrancy-events
+Reentrancy in VaultBase._receipt(address,DigitalReceiptNFT.Kind,bytes32,uint256,uint256) (contracts/vaults/VaultBase.sol#226-231):
+	External calls:
+	- receiptId = receipts.issue(to,kind,refId,amount) (contracts/vaults/VaultBase.sol#228)
+	Event emitted after the call(s):
+	- ReceiptLinked(receiptId,refId) (contracts/vaults/VaultBase.sol#229)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-4
+
+Detector: timestamp
+JanSetuFaucet.claim() (contracts/core/JanSetuFaucet.sol#47-59) uses timestamp for comparisons
+	Dangerous comparisons:
+	- last != 0 && block.timestamp < last + cooldown (contracts/core/JanSetuFaucet.sol#51)
+JanSetuFaucet.nextClaimAt(address) (contracts/core/JanSetuFaucet.sol#61-64) uses timestamp for comparisons
+	Dangerous comparisons:
+	- last == 0 (contracts/core/JanSetuFaucet.sol#63)
+DailyVault.deposit(uint256,uint16) (contracts/vaults/DailyVault.sol#72-90) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp >= p.maturityAt (contracts/vaults/DailyVault.sol#76)
+	- dayIndex >= a.totalDays || dayIndex > (block.timestamp - p.openedAt) / 86400 (contracts/vaults/DailyVault.sol#77)
+DailyVault.withdrawEarly(uint256) (contracts/vaults/DailyVault.sol#93-100) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp >= p.maturityAt (contracts/vaults/DailyVault.sol#96)
+	- block.timestamp < p.openedAt + uint256(a.earlyAfterDays) * 86400 (contracts/vaults/DailyVault.sol#97)
+DailyVault.claim(uint256) (contracts/vaults/DailyVault.sol#103-107) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp < p.maturityAt (contracts/vaults/DailyVault.sol#105)
+FixedDepositVault.withdrawEarly(uint256) (contracts/vaults/FixedDepositVault.sol#75-82) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp >= p.maturityAt (contracts/vaults/FixedDepositVault.sol#79)
+FixedDepositVault.claim(uint256) (contracts/vaults/FixedDepositVault.sol#84-88) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp < p.maturityAt (contracts/vaults/FixedDepositVault.sol#86)
+RecurringDepositVault.withdrawEarly(uint256) (contracts/vaults/RecurringDepositVault.sol#97-104) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp >= p.maturityAt (contracts/vaults/RecurringDepositVault.sol#100)
+	- block.timestamp < p.openedAt + uint256(a.earlyAfterDays) * 86400 (contracts/vaults/RecurringDepositVault.sol#101)
+RecurringDepositVault.claim(uint256) (contracts/vaults/RecurringDepositVault.sol#107-118) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp < p.maturityAt (contracts/vaults/RecurringDepositVault.sol#109)
+RecurringDepositVault.missedCount(uint256) (contracts/vaults/RecurringDepositVault.sol#126-134) uses timestamp for comparisons
+	Dangerous comparisons:
+	- ! paid[id][i] && block.timestamp > dueAt(id,i) + uint256(a.graceDays) * 86400 && p.status == Status.Active (contracts/vaults/RecurringDepositVault.sol#130)
+RecurringDepositVault._payInstallment(uint256,uint16) (contracts/vaults/RecurringDepositVault.sol#137-160) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp >= p.maturityAt (contracts/vaults/RecurringDepositVault.sol#140)
+	- index >= a.months || (index != 0 && block.timestamp < dueAt(id,index)) (contracts/vaults/RecurringDepositVault.sol#141)
+	- onTime = block.timestamp <= deadline (contracts/vaults/RecurringDepositVault.sol#146)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+
+Detector: dead-code
+INRToken._msgData() (contracts/core/INRToken.sol#59-61) is never used and should be removed
+JanSetuFaucet._msgData() (contracts/core/JanSetuFaucet.sol#90-92) is never used and should be removed
+JanSetuRegistry._msgData() (contracts/core/JanSetuRegistry.sol#158-160) is never used and should be removed
+VaultBase._msgData() (contracts/vaults/VaultBase.sol#251-253) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+. analyzed (58 contracts with 102 detectors), 17 result(s) found

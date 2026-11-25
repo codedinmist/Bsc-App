@@ -1,0 +1,13 @@
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEPLOYMENTS_FILE: /config/bscTestnet.json
+      DB_FILE: /data/jansetu.db
+    volumes:
+      - ./deployments/bscTestnet.json:/config/bscTestnet.json:ro
+      - ./data:/data
+    ports:
+      - "8080:8080"

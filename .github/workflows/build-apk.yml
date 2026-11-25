@@ -1,0 +1,62 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ["apps/mobile/**", ".github/workflows/build-apk.yml"]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: apps/mobile
+    env:
+      EXPO_PUBLIC_CHAIN: bscTestnet
+      EXPO_PUBLIC_API_URL: http://94.237.48.97:8080
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install packages
+        run: npm ci || npm install
+
+      - name: Check the code
+        run: npx tsc --noEmit
+
+      - name: Prepare the Android project
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.gradle
+          key: gradle-${{ runner.os }}-${{ hashFiles('apps/mobile/package-lock.json') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Build the APK
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+
+      - name: Name the file
+        run: cp android/app/build/outputs/apk/release/app-release.apk jansetu.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jansetu-apk
+          path: apps/mobile/jansetu.apk
+          retention-days: 14
