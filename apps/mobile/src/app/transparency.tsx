@@ -55,8 +55,8 @@ export default function Transparency() {
   useEffect(() => {
     if (!isDeployed) return;
     Promise.all([
-      totals(contracts.daily!, dailyAbi).then((t) => ({ name: "J-Daily vault", addr: contracts.daily!, t })),
-      totals(contracts.rd!, rdAbi).then((t) => ({ name: "Recurring vault", addr: contracts.rd!, t })),
+      totals(contracts.daily!, dailyAbi).then((t) => ({ name: "Daily saving vault", addr: contracts.daily!, t })),
+      totals(contracts.rd!, rdAbi).then((t) => ({ name: "Monthly plan vault", addr: contracts.rd!, t })),
       totals(contracts.fd!, fdAbi).then((t) => ({ name: "Fixed vault", addr: contracts.fd!, t })),
     ]).then(setRows).catch(() => setErr(true));
   }, []);
@@ -64,7 +64,7 @@ export default function Transparency() {
   return (
     <LargeTitleScreen title="Transparency" subtitle="Live numbers read straight from the blockchain" back>
       <Section index={0}><Chip kind="success" label="On-chain · read live" /></Section>
-      {!isDeployed ? <Section><Banner kind="warning" title="Nothing to show yet" body="Contracts aren't deployed or linked in this build." /></Section> : null}
+      {!isDeployed ? <Section><Banner kind="warning" title="Nothing to show yet" body="JanSetu is still being set up. Details will appear here once it goes live." /></Section> : null}
       {err ? <Section><Banner kind="error" title="Can't reach the network" /></Section> : null}
       {isDeployed && !rows && !err ? <Skeleton height={140} /> : null}
       {rows?.map((r, i) => (

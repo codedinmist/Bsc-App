@@ -1,10 +1,9 @@
-import { useEffect } from "react";
-import { Linking, Pressable, View } from "react-native";
-import Animated, { FadeIn, useAnimatedProps, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import { useEffect, useRef } from "react";
+import { Animated, Linking, Pressable, View } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import * as Haptics from "expo-haptics";
 import { radius, space, useColors } from "@/design/tokens";
-import { duration, ease, useMotion } from "@/design/motion";
+import { duration, ease, useMotion, useTween } from "@/design/motion";
 import { cancelPending, confirmPending, type TxState } from "@/chain/tx";
 import { txUrl } from "@/chain/config";
 import { Sheet } from "./Sheet";
@@ -15,8 +14,6 @@ import { Icon } from "./Icon";
 import { Chip } from "./Chip";
 
 const R = 34, C = 2 * Math.PI * R, CHECK = 44;
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 function progressOf(s: TxState): number {
   if (s.phase === "success") return 1;
@@ -27,19 +24,15 @@ function progressOf(s: TxState): number {
 function Ring({ state }: { state: TxState }) {
   const c = useColors();
   const { d } = useMotion();
-  const p = useSharedValue(0);
-  const check = useSharedValue(0);
   const failed = state.phase === "failed", ok = state.phase === "success";
-  useEffect(() => { p.value = withTiming(failed ? 1 : progressOf(state), { duration: d(duration.slow), easing: ease.out }); }, [state, failed, d, p]);
-  useEffect(() => { check.value = withTiming(ok ? 1 : 0, { duration: d(duration.draw), easing: ease.out }); }, [ok, d, check]);
-  const ring = useAnimatedProps(() => ({ strokeDashoffset: C * (1 - p.value) }));
-  const tick = useAnimatedProps(() => ({ strokeDashoffset: CHECK * (1 - check.value) }));
+  const p = useTween(failed ? 1 : progressOf(state), d(duration.slow));
+  const check = useTween(ok ? 1 : 0, d(duration.draw));
   const color = failed ? c.error : c.primary;
   return (
     <Svg width={96} height={96} viewBox="0 0 96 96">
       <Circle cx={48} cy={48} r={R} stroke={c.border} strokeWidth={5} fill="none" />
-      <AnimatedCircle cx={48} cy={48} r={R} stroke={color} strokeWidth={5} fill="none" strokeLinecap="round" strokeDasharray={C} animatedProps={ring} transform="rotate(-90 48 48)" />
-      {ok && <AnimatedPath d="M34 49 L44 59 L63 38" stroke={c.primary} strokeWidth={5} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={CHECK} animatedProps={tick} />}
+      <Circle cx={48} cy={48} r={R} stroke={color} strokeWidth={5} fill="none" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - p)} transform="rotate(-90 48 48)" />
+      {ok && <Path d="M34 49 L44 59 L63 38" stroke={c.primary} strokeWidth={5} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={CHECK} strokeDashoffset={CHECK * (1 - check)} />}
       {failed && <Path d="M36 36 L60 60 M60 36 L36 60" stroke={c.error} strokeWidth={5} strokeLinecap="round" />}
     </Svg>
   );
@@ -58,10 +51,17 @@ function AppTile({ size = 52 }: { size?: number }) {
 function ConfirmCue() {
   const { reduce } = useMotion();
   const c = useColors();
-  const o = useSharedValue(0.55);
-  useEffect(() => { if (!reduce) o.value = withRepeat(withSequence(withTiming(1, { duration: 900, easing: ease.inOut }), withTiming(0.55, { duration: 900, easing: ease.inOut })), -1); }, [reduce, o]);
-  const st = useAnimatedStyle(() => ({ opacity: o.value }));
-  return <Animated.View style={st}><Icon name="lock" size={22} color={c.textOnPrimary} /></Animated.View>;
+  const o = useRef(new Animated.Value(0.55)).current;
+  useEffect(() => {
+    if (reduce) return;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(o, { toValue: 1, duration: 900, easing: ease.inOut, useNativeDriver: true }),
+      Animated.timing(o, { toValue: 0.55, duration: 900, easing: ease.inOut, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [reduce, o]);
+  return <Animated.View style={{ opacity: o }}><Icon name="lock" size={22} color={c.textOnPrimary} /></Animated.View>;
 }
 
 const LABEL: Record<string, string> = {
@@ -102,7 +102,7 @@ export function TxSheet({ state, onClose }: { state: TxState; onClose: () => voi
   return (
     <Sheet visible={state.phase !== "idle"} onClose={() => (review ? cancelPending() : onClose())} dismissable={finished || review}>
       {review ? (
-        <Animated.View entering={FadeIn.duration(duration.base)} style={{ gap: space.lg }}>
+        <View style={{ gap: space.lg }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
             <AppTile />
             <View style={{ flex: 1, gap: 4 }}>
@@ -129,7 +129,7 @@ export function TxSheet({ state, onClose }: { state: TxState; onClose: () => voi
             <Icon name="shield" size={14} color={c.textSecondary} />
             <T v="caption" color="textSecondary">Your phone asks for fingerprint or face next</T>
           </View>
-        </Animated.View>
+        </View>
       ) : (
         <>
           <View style={{ alignItems: "center", gap: space.md, paddingVertical: space.md }}>

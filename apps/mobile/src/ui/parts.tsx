@@ -1,21 +1,16 @@
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Pressable, TextInput, View, type TextInputProps } from "react-native";
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 import { radius, space, useColors } from "@/design/tokens";
-import { duration, ease, useMotion } from "@/design/motion";
 import { T } from "./Text";
 import { Icon, type IconName } from "./Icon";
 import { Card } from "./Card";
 
-/** Subtle staggered entrance: 8px rise + fade, decelerating. */
-export const rise = (i = 0) => FadeInDown.delay(Math.min(i, 8) * 45).duration(duration.base).easing(ease.out).withInitialValues({ transform: [{ translateY: 8 }] });
-
 export function Section({ title, children, index = 0 }: { title?: string; children: ReactNode; index?: number }) {
   return (
-    <Animated.View entering={rise(index)} style={{ marginBottom: space.xl, gap: space.md }}>
+    <View style={{ marginBottom: space.xl, gap: space.md }}>
       {title ? <T v="caption" color="textSecondary" style={{ marginLeft: 4, letterSpacing: 1.3, textTransform: "uppercase" }}>{title}</T> : null}
       {children}
-    </Animated.View>
+    </View>
   );
 }
 
@@ -48,7 +43,7 @@ export function Stat({ label, value, hint }: { label: string; value: string; hin
   );
 }
 
-export function Banner({ kind = "info", title, body }: { kind?: "info" | "warning" | "error"; title: string; body?: string }) {
+export function Banner({ kind = "info", title, body, action }: { kind?: "info" | "warning" | "error"; title: string; body?: string; action?: { label: string; onPress: () => void } }) {
   const c = useColors();
   const bg = kind === "error" ? c.errorTint : kind === "warning" ? c.warningTint : c.tint;
   const fg = kind === "error" ? c.error : kind === "warning" ? c.warning : c.tintText;
@@ -58,6 +53,7 @@ export function Banner({ kind = "info", title, body }: { kind?: "info" | "warnin
       <View style={{ flex: 1, gap: 2 }}>
         <T v="callout" style={{ color: fg }}>{title}</T>
         {body ? <T v="footnote" style={{ color: fg }}>{body}</T> : null}
+        {action ? <Pressable onPress={action.onPress} accessibilityRole="button" hitSlop={8} style={{ alignSelf: "flex-start", marginTop: 8, backgroundColor: fg, borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8 }}><T v="caption" style={{ color: bg, fontFamily: "Inter_700Bold" }}>{action.label}</T></Pressable> : null}
       </View>
     </View>
   );

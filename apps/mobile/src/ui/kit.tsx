@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, TextInput, View, type LayoutChangeEvent, type TextInputProps } from "react-native";
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/design/tokens";
 import { T } from "./Text";
@@ -37,12 +37,14 @@ export function BigAmount({ value, unit = "tINR", color = "#FFFFFF", size = 44 }
 /** Large amount entry on the page itself (no box), with quick-pick chips. */
 export function HeroAmountInput({ value, onChangeText, quick, suffix = "tINR" }: { value: string; onChangeText: (v: string) => void; quick?: number[]; suffix?: string }) {
   const c = useColors();
-  const n = value.length;
+  const group = (raw: string) => { const [i, d] = raw.split("."); return (i ? Number(i).toLocaleString("en-IN") : "") + (d !== undefined ? "." + d : ""); };
+  const shown = group(value);
+  const n = shown.length;
   const size = n <= 6 ? 52 : n <= 8 ? 44 : 36;
   return (
     <View style={{ gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
-        <TextInput value={value} onChangeText={onChangeText} placeholder="0" keyboardType="decimal-pad" placeholderTextColor={c.border} accessibilityLabel="Amount"
+        <TextInput value={shown} onChangeText={(t) => onChangeText(t.replace(/[^0-9.]/g, "").replace(/^(\d*\.\d*).*$/, "$1"))} placeholder="0" keyboardType="decimal-pad" placeholderTextColor={c.border} accessibilityLabel="Amount"
           style={{ flexShrink: 1, minWidth: 60, fontFamily: "Lora_500Medium", fontSize: size, color: c.text, padding: 0, fontVariant: ["tabular-nums"] }} />
         <T v="body" color="textSecondary" style={{ marginBottom: 8 }}>{suffix}</T>
       </View>
@@ -141,19 +143,23 @@ const TONES = {
 } as const;
 export const planInk = (t: PlanTone) => TONES[t].ink;
 
-/** Textured gradient card, same family as the wallet cards on Home. */
+/** Textured gradient card, same family as the wallet cards on Home. Solid colour underneath, so it never shows a gap while it measures. */
 export function PlanCard({ tone, children, onPress }: { tone: PlanTone; children: ReactNode; onPress?: () => void }) {
   const t = TONES[tone];
   const gid = `pc_${tone}`;
+  const [box, setBox] = useState({ w: 0, h: 0 });
   const body = (
-    <View style={{ borderRadius: 26, overflow: "hidden", padding: 20, shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 3 }}>
-      <Svg width="100%" height="100%" preserveAspectRatio="none" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }} pointerEvents="none">
-        <Defs><LinearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={t.a} /><Stop offset="0.55" stopColor={t.b} /><Stop offset="1" stopColor={t.c} /></LinearGradient></Defs>
-        <Rect width="100%" height="100%" fill={`url(#${gid})`} />
-      </Svg>
-      <Svg width={190} height={190} viewBox="0 0 190 190" style={{ position: "absolute", right: -20, bottom: -40, opacity: t.lineOp * 1.4 }} pointerEvents="none">
-        {[20, 32, 44, 56, 68, 80, 92].map((r) => <Path key={r} d={`M${95 - r} 200V95a${r} ${r} 0 0 1 ${2 * r} 0V200`} stroke={t.line} strokeWidth={1} fill="none" />)}
-      </Svg>
+    <View onLayout={(e: LayoutChangeEvent) => setBox({ w: Math.round(e.nativeEvent.layout.width), h: Math.round(e.nativeEvent.layout.height) })}
+      style={{ borderRadius: 26, overflow: "hidden", padding: 20, backgroundColor: t.b }}>
+      {box.w > 0 ? (
+        <Svg width={box.w} height={box.h} style={{ position: "absolute", left: 0, top: 0 }} pointerEvents="none">
+          <Defs><LinearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={t.a} /><Stop offset="0.55" stopColor={t.b} /><Stop offset="1" stopColor={t.c} /></LinearGradient></Defs>
+          <Rect width={box.w} height={box.h} fill={`url(#${gid})`} />
+          <G transform={`translate(${box.w - 40} ${box.h + 30})`} stroke={t.line} strokeOpacity={t.lineOp} strokeWidth={1} fill="none">
+            {[30, 46, 62, 78, 94, 110, 126].map((r) => <Circle key={r} r={r} />)}
+          </G>
+        </Svg>
+      ) : null}
       {children}
     </View>
   );

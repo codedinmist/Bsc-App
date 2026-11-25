@@ -176,7 +176,7 @@ export default function AgentTools() {
       <Section title="Commissions" index={4}>
         <Card style={{ gap: space.md }}>
           <T v="footnote" color="textSecondary">Commission on a customer's deposit is counted first, then paid out gradually until the deposit matures. If the customer withdraws early, the unpaid part is cancelled.</T>
-          <Segmented options={[{ label: "Daily", value: "daily" as const }, { label: "Recurring", value: "rd" as const }, { label: "Fixed", value: "fd" as const }]} value={vaultKey} onChange={setVaultKey} />
+          <Segmented options={[{ label: "Daily", value: "daily" as const }, { label: "Monthly", value: "rd" as const }, { label: "Fixed", value: "fd" as const }]} value={vaultKey} onChange={setVaultKey} />
           <TextField label="Deposit number" value={posId} onChangeText={setPosId} keyboardType="number-pad" placeholder="e.g. 12" />
           <Button label="Count this deposit" variant="secondary" disabled={!ready || !vault || !posId} onPress={() => tx.run("Count commission", [s(contracts.commissions!, commissionsAbi, "sync", [vault, BigInt(posId)], "Count")])} />
           <Button label="Claim my commission" disabled={!ready || !vault || !posId} onPress={() => tx.run("Claim commission", [s(contracts.commissions!, commissionsAbi, "claim", [vault, BigInt(posId), 0], "Claim")])} />

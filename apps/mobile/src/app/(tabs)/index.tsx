@@ -1,6 +1,5 @@
 import { Pressable, View, useColorScheme } from "react-native";
 import * as Haptics from "expo-haptics";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { radius, space, useColors } from "@/design/tokens";
@@ -70,14 +69,14 @@ export default function Home() {
   return (
     <LargeTitleScreen title={greeting} subtitle={address ? shortAddr(address) : undefined}>
       {!isDeployed && (
-        <Section index={0}><Banner kind="warning" title="Contracts aren't deployed yet" body="The app is ready, but no JanSetu contracts are linked. After deployment, run `npm run sync:contracts` and rebuild. Balances below stay empty until then." /></Section>
+        <Section index={0}><Banner kind="warning" title="Almost ready" body="JanSetu is still being set up. Your balances will appear here shortly." /></Section>
       )}
       {data.error ? <Section><Banner kind="warning" title="You are offline" body={data.error} /></Section> : null}
 
       <Section index={1}>
         <WalletStack loaded={data.loaded} format={(n) => n.toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
           cards={[
-            { key: "wallet", kind: "wallet", title: "Wallet", amount: Number(data.tinr / 10n ** 16n) / 100, sub: address ? shortAddr(address) : "", caption: address ? shortAddr(address) : "" },
+            { key: "wallet", kind: "wallet", title: "Wallet", amount: Number(data.tinr / 10n ** 16n) / 100, sub: address ? shortAddr(address) : "", caption: "", copy: address ?? undefined },
             { key: "fd", kind: "gold", title: "Fixed deposit", amount: Number(fdP / 10n ** 16n) / 100, sub: active(data.fd).length ? `${active(data.fd).length} active` : "Nothing locked yet", caption: formatAmount(fdP), onOpen: () => router.push("/fd") },
             { key: "rd", kind: "green", title: "Monthly plan", amount: Number(rdP / 10n ** 16n) / 100, sub: active(data.rd).length ? `${active(data.rd).length} active` : "Not started yet", caption: formatAmount(rdP), onOpen: () => router.push("/rd") },
           ]} />

@@ -23,35 +23,31 @@ export async function readAddress(): Promise<`0x${string}` | null> {
   return a && /^0x[0-9a-fA-F]{40}$/.test(a) ? (a as `0x${string}`) : null;
 }
 
-const GUARD = "jansetu.wallet.guarded";
 const plain: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
 const withTimeout = <T,>(p: Promise<T>, ms: number) => new Promise<T>((res, rej) => { const t = setTimeout(() => rej(new Error("timeout")), ms); p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); }); });
 
-/** True when the key is locked behind fingerprint, face or screen lock for every use. */
-export async function isGuarded(): Promise<boolean> { try { return (await SecureStore.getItemAsync(GUARD)) !== "0"; } catch { return true; } }
+/** The key is always locked behind fingerprint, face or screen lock for every use. */
+export async function isGuarded(): Promise<boolean> { return true; }
 
-/**
- * Saves the key in the phone's encrypted store (Android Keystore backed). We no longer lock the store itself behind the
- * system prompt: on some phones that prompt never appears and wallet creation hangs. Instead the app asks for
- * fingerprint, face or PIN before every signing (see confirmUser), when the phone supports it.
- */
+/** True when the phone has a fingerprint, face or at least a PIN/pattern/password. */
+async function hasScreenLock(): Promise<boolean> {
+  try { return (await LocalAuthentication.getEnrolledLevelAsync()) !== LocalAuthentication.SecurityLevel.NONE; } catch { return false; }
+}
+
+/** Saves the key in the phone's encrypted store (Android Keystore backed). Refuses to create a wallet on a phone with no screen lock. */
 async function persist(pk: Hex, address: string) {
+  if (!(await hasScreenLock())) throw new Error("Set a screen lock (PIN, pattern, fingerprint or face) in your phone settings first. JanSetu will not store a wallet on an unlocked phone.");
   await SecureStore.setItemAsync(KEY, pk, plain);
-  let lock = false;
-  try { lock = (await LocalAuthentication.hasHardwareAsync()) && (await LocalAuthentication.isEnrolledAsync()); } catch { lock = false; }
-  await SecureStore.setItemAsync(GUARD, lock ? "1" : "0", plain);
   await SecureStore.setItemAsync(ADDR, address, plain);
 }
 
-/** Asks for fingerprint, face or PIN. If the phone cannot show the prompt, signing continues (the key is still encrypted at rest). */
+/** Asks for fingerprint, face or PIN before every signing. Fails closed: if the check cannot run or is cancelled, nothing is signed. */
 async function confirmUser(prompt: string) {
-  if (!(await isGuarded())) return;
-  try {
-    const r = await withTimeout(LocalAuthentication.authenticateAsync({ promptMessage: prompt, disableDeviceFallback: false }), 120_000);
-    if (!r.success) throw new Error("Confirmation cancelled.");
-  } catch (e) {
-    if (e instanceof Error && e.message === "Confirmation cancelled.") throw e;
-  }
+  if (!(await hasScreenLock())) throw new Error("Your phone has no screen lock, so JanSetu cannot confirm it is you. Set one in your phone settings.");
+  let r: LocalAuthentication.LocalAuthenticationResult;
+  try { r = await withTimeout(LocalAuthentication.authenticateAsync({ promptMessage: prompt, disableDeviceFallback: false }), 120_000); }
+  catch { throw new Error("Could not confirm it is you. Please try again."); }
+  if (!r.success) throw new Error("Confirmation cancelled.");
 }
 
 /** Creates a wallet. The recovery phrase is returned ONCE for the user to write down; it is not stored. */
@@ -75,7 +71,6 @@ export async function importWallet(phrase: string): Promise<`0x${string}`> {
 export async function removeWallet() {
   await SecureStore.deleteItemAsync(KEY);
   await SecureStore.deleteItemAsync(ADDR);
-  await SecureStore.deleteItemAsync(GUARD).catch(() => {});
 }
 
 /** Runs `fn` with the signing account after biometric confirmation. The key is not kept anywhere else. */

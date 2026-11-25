@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 import { type Address } from "viem";
@@ -36,6 +37,7 @@ async function loadDetail(p: RawPosition, now: number): Promise<Detail> {
 }
 
 export default function Daily() {
+  const router = useRouter();
   const { address } = useWallet();
   const chain = useChain();
   const now = useNow(30_000);
@@ -59,7 +61,7 @@ export default function Daily() {
 
   const open = async () => {
     const amt = E(tier);
-    tx.run("Open J-Daily account", [call("Open your account", "open", [amt])], { amount: formatAmount(amt), rows: [{ label: "Daily deposit", value: `${formatAmount(amt)} tINR a day` }, { label: "Plan", value: "J-Daily savings" }] });
+    tx.run("Open daily saving account", [call("Open your account", "open", [amt])], { amount: formatAmount(amt), rows: [{ label: "Daily deposit", value: `${formatAmount(amt)} tINR a day` }, { label: "Plan", value: "J-Daily savings" }] });
   };
   const deposit = async (p: RawPosition, d: Detail, day: number) => {
     const approve = await approvalSteps(address!, vault!, d.installment);
@@ -72,7 +74,7 @@ export default function Daily() {
   return (
     <LargeTitleScreen title="Daily saving" subtitle="A little, every day" back>
       <Section index={0}>
-        {!vault ? <Banner kind="warning" title="Coming soon" body="This feature is being switched on. Please check back shortly." /> : !chain.registered && chain.loaded ? <Banner title="Join JanSetu first" body="Open the Home tab and finish the 'Get started' steps." /> : null}
+        {!vault ? <Banner kind="warning" title="Coming soon" body="This feature is being switched on. Please check back shortly." /> : !chain.registered && chain.loaded ? <Banner title="Join JanSetu first" body="It takes one quick step on the Home screen." action={{ label: "Go to Home", onPress: () => router.navigate("/") }} /> : null}
       </Section>
 
       <Section title="Start saving daily" index={1}>

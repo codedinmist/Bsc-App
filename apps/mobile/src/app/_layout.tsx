@@ -1,4 +1,5 @@
 import "@/wallet/polyfill";
+import "@/lib/session";
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Stack } from "expo-router";

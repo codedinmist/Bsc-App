@@ -50,7 +50,7 @@ export default function Faucet() {
   return (
     <LargeTitleScreen title="Add money" subtitle="Top up your wallet, free of charge" back>
       <Section index={0}><Chip kind="testnet" label="Preview network · tINR has no cash value" /></Section>
-      {!isDeployed ? <Section><Banner kind="warning" title="Faucet not deployed yet" body="It will work as soon as the contracts are deployed and linked." /></Section> : (
+      {!isDeployed ? <Section><Banner kind="warning" title="Free money is not available yet" body="It will be switched on shortly. Please check back soon." /></Section> : (
         <Section index={1}>
           <Card style={{ gap: 20 }}>
             {!info && !err ? <Skeleton height={80} /> : err ? <T color="error">Can't reach the network. Pull back and try again.</T> : info && (

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "expo-router";
 import { Pressable, Switch, View } from "react-native";
 import { type Address } from "viem";
 import { publicClient } from "@/chain/client";
@@ -26,6 +27,7 @@ type Term = { id: number; days: number; rewardBps: number };
 type Dep = { earlyPenaltyBps: number; earlyAllowed: boolean };
 
 export default function Fd() {
+  const router = useRouter();
   const c = useColors();
   const { address } = useWallet();
   const chain = useChain();
@@ -77,7 +79,7 @@ export default function Fd() {
   return (
     <LargeTitleScreen title="Fixed deposit" subtitle="Lock once, collect at maturity" back>
       <Section index={0}>
-        {!vault ? <Banner kind="warning" title="Coming soon" body="This feature is being switched on. Please check back shortly." /> : !chain.registered && chain.loaded ? <Banner title="Join JanSetu first" body="Open the Home tab and finish the 'Get started' steps." /> : null}
+        {!vault ? <Banner kind="warning" title="Coming soon" body="This feature is being switched on. Please check back shortly." /> : !chain.registered && chain.loaded ? <Banner title="Join JanSetu first" body="It takes one quick step on the Home screen." action={{ label: "Go to Home", onPress: () => router.navigate("/") }} /> : null}
       </Section>
 
       {terms.length > 0 && (

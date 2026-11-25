@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
-import { Pressable, View, type LayoutChangeEvent } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Pressable, View, type LayoutChangeEvent } from "react-native";
 import * as Haptics from "expo-haptics";
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { springs, useMotion } from "@/design/motion";
 import { useColors } from "@/design/tokens";
 import { T } from "./Text";
 import { CountUp } from "./CountUp";
+import { Icon } from "./Icon";
+import { copyTemporarily } from "@/lib/clipboard";
 
-export type StackCard = { key: string; kind: "wallet" | "gold" | "green"; title: string; amount: number; sub: string; caption: string; onOpen?: () => void };
+export type StackCard = { key: string; kind: "wallet" | "gold" | "green"; title: string; amount: number; sub: string; caption: string; copy?: string; onOpen?: () => void };
 
 const CH = 150;          // card height
 const PEEK = 30;         // how much of each back card shows
@@ -62,14 +63,20 @@ function Face({ kind, w }: { kind: StackCard["kind"]; w: number }) {
 function CardView({ card, depth, n, w, front, onPress }: { card: StackCard; depth: number; n: number; w: number; front: boolean; onPress: () => void }) {
   const { reduce } = useMotion();
   const t = THEME[card.kind];
-  const d = useSharedValue(depth);
-  const enter = useSharedValue(reduce ? 1 : 0);
-  useEffect(() => { d.value = reduce ? depth : withSpring(depth, springs.settle); }, [depth, reduce, d]);
-  useEffect(() => { enter.value = reduce ? 1 : withDelay(120 + (n - 1 - depth) * 70, withSpring(1, springs.gentle)); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const st = useAnimatedStyle(() => ({
-    opacity: enter.value,
-    transform: [{ translateY: (n - 1 - d.value) * PEEK + (1 - enter.value) * 60 }, { scale: 1 - d.value * 0.03 }],
-  }));
+  const d = useRef(new Animated.Value(depth)).current;
+  const enter = useRef(new Animated.Value(reduce ? 1 : 0)).current;
+  useEffect(() => { if (reduce) d.setValue(depth); else Animated.spring(d, { toValue: depth, ...springs.settle }).start(); }, [depth, reduce, d]);
+  useEffect(() => {
+    if (reduce) { enter.setValue(1); return; }
+    Animated.sequence([Animated.delay(120 + (n - 1 - depth) * 70), Animated.spring(enter, { toValue: 1, ...springs.gentle })]).start();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const st = {
+    opacity: enter,
+    transform: [
+      { translateY: Animated.add(d.interpolate({ inputRange: [0, 4], outputRange: [(n - 1) * PEEK, (n - 5) * PEEK] }), enter.interpolate({ inputRange: [0, 1], outputRange: [60, 0] })) },
+      { scale: d.interpolate({ inputRange: [0, 4], outputRange: [1, 0.88] }) },
+    ],
+  };
   return (
     <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: w, height: CH, zIndex: 10 - depth, shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 }, st]}>
       <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.sub}`} style={{ flex: 1 }}>
@@ -94,6 +101,9 @@ export function WalletStack({ cards, loaded, format }: { cards: StackCard[]; loa
   const { reduce } = useMotion();
   const [w, setW] = useState(0);
   const [order, setOrder] = useState(cards.map((x) => x.key)); // order[0] is in front
+  const [copied, setCopied] = useState(false);
+  useEffect(() => { if (!copied) return; const t = setTimeout(() => setCopied(false), 1800); return () => clearTimeout(t); }, [copied]);
+  const doCopy = (text: string) => { Haptics.selectionAsync().catch(() => {}); copyTemporarily(text).then(() => setCopied(true)).catch(() => {}); };
   const onLayout = (e: LayoutChangeEvent) => setW(Math.round(e.nativeEvent.layout.width));
   const n = cards.length;
   const front = cards.find((x) => x.key === order[0]) ?? cards[0];
@@ -102,9 +112,9 @@ export function WalletStack({ cards, loaded, format }: { cards: StackCard[]; loa
   const pocketTop = (n - 1) * PEEK + 54;
   const total = pocketTop + pocketH + 6;
   const pick = (k: string) => { if (k === order[0]) return; Haptics.selectionAsync().catch(() => {}); setOrder([k, ...order.filter((o) => o !== k)]); };
-  const pop = useSharedValue(1);
-  useEffect(() => { pop.value = reduce ? 1 : 0.92; pop.value = withTiming(1, { duration: 260 }); }, [front.key, reduce, pop]);
-  const labelStyle = useAnimatedStyle(() => ({ opacity: pop.value, transform: [{ translateY: (1 - pop.value) * 40 }] }));
+  const pop = useRef(new Animated.Value(1)).current;
+  useEffect(() => { if (reduce) { pop.setValue(1); return; } pop.setValue(0.92); Animated.timing(pop, { toValue: 1, duration: 260, useNativeDriver: true }).start(); }, [front.key, reduce, pop]);
+  const labelStyle = { opacity: pop, transform: [{ translateY: pop.interpolate({ inputRange: [0.92, 1], outputRange: [40 * 0.08, 0], extrapolate: "clamp" }) }] };
   const amountText = format(front.amount);
   const L = amountText.length;
   const size = L <= 5 ? 40 : L <= 7 ? 35 : L <= 9 ? 30 : 26;
@@ -129,7 +139,12 @@ export function WalletStack({ cards, loaded, format }: { cards: StackCard[]; loa
                   {loaded ? <CountUp value={front.amount} format={format} ms={900} style={{ color: "#fff", fontSize: size, lineHeight: size + 8, letterSpacing: -0.8, fontFamily: "Lora_500Medium" }} /> : <T v="money" style={{ color: "#fff", fontSize: 34 }}>…</T>}
                   <T v="callout" style={{ color: "rgba(255,255,255,0.78)", marginBottom: 5 }}>tINR</T>
                 </View>
-                <T v="footnote" style={{ color: "rgba(255,255,255,0.62)" }} numberOfLines={1}>{front.sub}</T>
+                {front.copy ? (
+                  <Pressable onPress={() => doCopy(front.copy!)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Copy wallet address" style={{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }}>
+                    <T v="footnote" style={{ color: "rgba(255,255,255,0.62)" }} numberOfLines={1}>{copied ? "Address copied" : front.sub}</T>
+                    <Icon name={copied ? "check" : "copy"} size={14} color="rgba(255,255,255,0.8)" />
+                  </Pressable>
+                ) : <T v="footnote" style={{ color: "rgba(255,255,255,0.62)" }} numberOfLines={1}>{front.sub}</T>}
               </Animated.View>
               <View style={{ position: "absolute", right: 26, top: 38 }}>
                 {front.kind === "wallet" ? (

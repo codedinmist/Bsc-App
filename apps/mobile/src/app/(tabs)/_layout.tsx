@@ -11,14 +11,13 @@ export default function TabsLayout() {
   return (
     <Tabs
       tabBar={(p) => <FloatingTabBar {...p} />}
-      screenOptions={{ headerShown: false, animation: "fade", sceneStyle: { backgroundColor: c.bg } }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.bg } }}
     >
       <Tabs.Screen name="index" options={{ title: "Home" }} />
       <Tabs.Screen name="savings" options={{ title: "Save" }} />
       <Tabs.Screen name="pay" options={{ title: "Pay" }} />
       <Tabs.Screen name="credit" options={{ title: "Borrow" }} />
       <Tabs.Screen name="more" options={{ title: "More" }} />
-      <Tabs.Screen name="rewards" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -1,6 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Modal, Pressable, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Animated, Modal, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { radius, space, useColors } from "@/design/tokens";
 import { duration, ease, springs, useMotion } from "@/design/motion";
@@ -11,24 +10,24 @@ export function Sheet({ visible, onClose, children, dismissable = true }: { visi
   const insets = useSafeAreaInsets();
   const { reduce, d } = useMotion();
   const [mounted, setMounted] = useState(visible);
-  const y = useSharedValue(520);
-  const o = useSharedValue(0);
+  const y = useRef(new Animated.Value(520)).current;
+  const o = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       setMounted(true);
-      o.value = withTiming(1, { duration: d(duration.base), easing: ease.out });
-      y.value = reduce ? withTiming(0, { duration: 1 }) : withSpring(0, springs.sheet);
+      Animated.timing(o, { toValue: 1, duration: d(duration.base), easing: ease.out, useNativeDriver: true }).start();
+      if (reduce) y.setValue(0); else Animated.spring(y, { toValue: 0, ...springs.sheet }).start();
       return;
     }
-    o.value = withTiming(0, { duration: d(duration.fast), easing: ease.in });
-    y.value = withTiming(520, { duration: d(duration.fast), easing: ease.in });
+    Animated.timing(o, { toValue: 0, duration: d(duration.fast), easing: ease.in, useNativeDriver: true }).start();
+    Animated.timing(y, { toValue: 520, duration: d(duration.fast), easing: ease.in, useNativeDriver: true }).start();
     const t = setTimeout(() => setMounted(false), duration.fast + 20);
     return () => clearTimeout(t);
   }, [visible, reduce, d, o, y]);
 
-  const scrim = useAnimatedStyle(() => ({ opacity: o.value }));
-  const panel = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+  const scrim = { opacity: o };
+  const panel = { transform: [{ translateY: y }] };
   if (!mounted) return null;
   return (
     <Modal transparent visible animationType="none" onRequestClose={() => { if (dismissable) onClose(); }} statusBarTranslucent>

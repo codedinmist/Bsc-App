@@ -22,7 +22,7 @@ import { Pressable } from "react-native";
 import { useColors } from "@/design/tokens";
 import { TxSheet } from "@/ui/TxSheet";
 
-type Pos = RawPosition & { vault: Address; kind: "J-Daily" | "Recurring" | "Fixed" };
+type Pos = RawPosition & { vault: Address; kind: "Daily saving" | "Monthly plan" | "Fixed deposit" };
 type VLoan = { id: bigint; principal: bigint; totalDue: bigint; installment: bigint; paid: bigint; count: number; paidCount: number; nextDue: bigint; tier: number; status: number };
 type CLoan = { id: bigint; collateral: bigint; principal: bigint; owed: bigint; paid: bigint; dueAt: bigint; status: number; vault: Address; positionId: bigint };
 
@@ -39,9 +39,9 @@ export default function Credit() {
   const [lpAmount, setLpAmount] = useState("");
 
   const positions: Pos[] = useMemo(() => [
-    ...chain.daily.map((p) => ({ ...p, vault: contracts.daily!, kind: "J-Daily" as const })),
-    ...chain.rd.map((p) => ({ ...p, vault: contracts.rd!, kind: "Recurring" as const })),
-    ...chain.fd.map((p) => ({ ...p, vault: contracts.fd!, kind: "Fixed" as const })),
+    ...chain.daily.map((p) => ({ ...p, vault: contracts.daily!, kind: "Daily saving" as const })),
+    ...chain.rd.map((p) => ({ ...p, vault: contracts.rd!, kind: "Monthly plan" as const })),
+    ...chain.fd.map((p) => ({ ...p, vault: contracts.fd!, kind: "Fixed deposit" as const })),
   ].filter((p) => p.status === 1 && p.collateralEligible && p.principal > p.locked), [chain.daily, chain.rd, chain.fd]);
   const chosen = positions.find((p) => `${p.vault}:${p.id}` === posKey) ?? positions[0];
 
@@ -162,8 +162,8 @@ export default function Credit() {
             </Card>
           ) : (
             <Card style={{ gap: space.md }}>
-              <T v="footnote" color="textSecondary">Save 100 tINR a day for 15 days in J-Daily, then get checked by an agent. You receive 10,000 tINR and repay 100 tINR a day for 120 days (12,000 in total).</T>
-              <T v="callout">Eligible J-Daily accounts: {d.eligible.length}</T>
+              <T v="footnote" color="textSecondary">Save 100 tINR a day for 15 days as a Daily saving, then get checked by an agent. You receive 10,000 tINR and repay 100 tINR a day for 120 days (12,000 in total).</T>
+              <T v="callout">Eligible daily savings accounts: {d.eligible.length}</T>
               <T v="callout">Agent check: {d.verifiedBy === "0x0000000000000000000000000000000000000000" ? "not done" : `by ${shortAddr(d.verifiedBy)}${nowSec > Number(d.verifiedAt) + 14 * 86400 ? " (expired)" : ""}`}</T>
               {d.defaulted ? <Banner kind="error" title="Blocked" body="A previous loan was defaulted, so new merchant loans are blocked." /> : null}
               <Button label="Get a 10,000 tINR loan" disabled={!d.eligible.length || d.defaulted} onPress={() => tx.run("Merchant loan", [{ label: "Borrow", address: contracts.micro!, abi: microAbi as never, functionName: "borrow", args: [0, d.eligible[0]] }])} />

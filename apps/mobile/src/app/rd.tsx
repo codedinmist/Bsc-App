@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 import { type Address } from "viem";
 import { publicClient } from "@/chain/client";
@@ -52,6 +53,7 @@ function Dots({ d, openedAt, now }: { d: Detail; openedAt: number; now: number }
 }
 
 export default function Rd() {
+  const router = useRouter();
   const c = useColors();
   const { address } = useWallet();
   const chain = useChain();
@@ -83,7 +85,7 @@ export default function Rd() {
   const start = async () => {
     if (!plan) return;
     const approve = await approvalSteps(address!, vault!, plan.monthly);
-    tx.run("Start recurring deposit", [...approve, call("Start plan & pay first instalment", "open", [BigInt(plan.id)])], { amount: formatAmount(plan.monthly), rows: [{ label: "Plan", value: `${plan.months} months` }, { label: "First instalment", value: "Paid now" }] });
+    tx.run("Start monthly plan", [...approve, call("Start plan & pay first instalment", "open", [BigInt(plan.id)])], { amount: formatAmount(plan.monthly), rows: [{ label: "Plan", value: `${plan.months} months` }, { label: "First instalment", value: "Paid now" }] });
   };
   const payNext = async (p: RawPosition, d: Detail) => {
     const idx = d.paid.findIndex((x, i) => !x && i <= Math.floor((now - Number(p.openedAt)) / MONTH));
@@ -91,13 +93,13 @@ export default function Rd() {
     const late = now > Number(p.openedAt) + idx * MONTH + d.graceDays * DAY;
     const amount = d.monthly + (late ? (d.monthly * BigInt(d.latePenaltyBps)) / 10000n : 0n);
     const approve = await approvalSteps(address!, vault!, amount);
-    tx.run(`Instalment ${idx + 1}`, [...approve, call("Pay instalment", "pay", [p.id, idx])], { amount: formatAmount(amount), rows: [{ label: "Account", value: `Recurring #${p.id}` }, ...(late ? [{ label: "Includes late fee", value: "Yes" }] : [])] });
+    tx.run(`Instalment ${idx + 1}`, [...approve, call("Pay instalment", "pay", [p.id, idx])], { amount: formatAmount(amount), rows: [{ label: "Account", value: `Monthly plan #${p.id}` }, ...(late ? [{ label: "Includes late fee", value: "Yes" }] : [])] });
   };
 
   return (
     <LargeTitleScreen title="Monthly plan" subtitle="The same amount, every month" back>
       <Section index={0}>
-        {!vault ? <Banner kind="warning" title="Coming soon" body="This feature is being switched on. Please check back shortly." /> : !chain.registered && chain.loaded ? <Banner title="Join JanSetu first" body="Open the Home tab and finish the 'Get started' steps." /> : null}
+        {!vault ? <Banner kind="warning" title="Coming soon" body="This feature is being switched on. Please check back shortly." /> : !chain.registered && chain.loaded ? <Banner title="Join JanSetu first" body="It takes one quick step on the Home screen." action={{ label: "Go to Home", onPress: () => router.navigate("/") }} /> : null}
       </Section>
 
       {plans.length > 0 && (
@@ -108,7 +110,7 @@ export default function Rd() {
             return (
               <Pressable key={p.id} onPress={() => setSel(p.id)} accessibilityRole="radio" accessibilityState={{ selected: on }}>
                 <Card style={{ gap: 6, borderColor: on ? c.primary : c.border, borderWidth: on ? 2 : 1, backgroundColor: on ? c.tint : c.surface }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: on ? c.primary : c.border, alignItems: "center", justifyContent: "center" }}>{on ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.primary }} /> : null}</View><T v="headline" style={{ fontFamily: "Lora_600SemiBold", fontSize: 18 }}>{formatAmount(p.monthly, 0)} tINR a month · {p.months / 12} {p.months === 12 ? "year" : "years"}</T></View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: on ? c.primary : c.border, alignItems: "center", justifyContent: "center" }}>{on ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.primary }} /> : null}</View><View style={{ flex: 1 }}><T v="headline" style={{ fontFamily: "Lora_600SemiBold", fontSize: 18 }}>{`${formatAmount(p.monthly, 0)} tINR a month · ${p.months / 12} ${p.months === 12 ? "year" : "years"}`}</T></View></View>
                   {pr ? <T v="footnote" color="textSecondary">Estimate: {formatAmount(BigInt(pr.deposited) * 10n ** 18n, 0)} paid in → {formatAmount(BigInt(pr.projected) * 10n ** 18n, 0)} at {pr.apy}% APY. Not guaranteed.</T> : null}
                 </Card>
               </Pressable>
@@ -121,7 +123,7 @@ export default function Rd() {
       )}
 
       <Section title="Your plans" index={2}>
-        {mine.length === 0 ? <Card><T v="body" color="textSecondary">No active recurring deposits yet.</T></Card> : mine.map((p) => {
+        {mine.length === 0 ? <Card><T v="body" color="textSecondary">No active monthly plans yet.</T></Card> : mine.map((p) => {
           const d = details[String(p.id)];
           const matured = now >= Number(p.maturityAt);
           const earlyOpen = !!d && now >= Number(p.openedAt) + d.earlyAfterDays * DAY && !matured;
@@ -147,7 +149,7 @@ export default function Rd() {
                 {p.locked > 0n ? <SummaryRow label="Pledged for a loan" value={formatAmount(p.locked)} last /> : null}
               </Card>
               {d && payable ? <Button label="Pay this instalment" onPress={() => payNext(p, d)} /> : null}
-              {matured ? <Button label="Claim at maturity" onPress={() => tx.run("Claim recurring deposit", [call("Claim", "claim", [p.id])])} /> : null}
+              {matured ? <Button label="Claim at maturity" onPress={() => tx.run("Claim monthly plan", [call("Claim", "claim", [p.id])])} /> : null}
               {earlyOpen && d ? <Button label={`Withdraw early${d.earlyPenaltyBps ? ` · ${d.earlyPenaltyBps / 100}% fee` : ""}`} variant="secondary" onPress={() => tx.run("Withdraw early", [call("Withdraw", "withdrawEarly", [p.id])])} /> : null}
               {d && !earlyOpen && !matured ? <T v="footnote" color="textSecondary" style={{ textAlign: "center" }}>Early withdrawal opens after {d.earlyAfterDays} days.</T> : null}
             </View>

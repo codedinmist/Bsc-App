@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
-import { Pressable, View } from "react-native";
-import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { useRef } from "react";
+import { Animated, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { space, useColors } from "@/design/tokens";
@@ -17,10 +17,10 @@ export function LargeTitleScreen({ title, subtitle, back, right, children }: { t
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const dark = useColorScheme() === "dark";
-  const y = useSharedValue(0);
-  const onScroll = useAnimatedScrollHandler((e) => { y.value = e.contentOffset.y; });
-  const bar = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [24, 64], [0, 1], Extrapolation.CLAMP) }));
-  const large = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [0, 48], [1, 0], Extrapolation.CLAMP), transform: [{ translateY: interpolate(y.value, [0, 48], [0, -6], Extrapolation.CLAMP) }] }));
+  const y = useRef(new Animated.Value(0)).current;
+  const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y } } }], { useNativeDriver: true });
+  const bar = { opacity: y.interpolate({ inputRange: [24, 64], outputRange: [0, 1], extrapolate: "clamp" }) };
+  const large = { opacity: y.interpolate({ inputRange: [0, 48], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: y.interpolate({ inputRange: [0, 48], outputRange: [0, -6], extrapolate: "clamp" }) }] };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>

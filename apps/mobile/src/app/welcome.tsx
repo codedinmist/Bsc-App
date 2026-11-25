@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import * as Haptics from "expo-haptics";
 import { usePreventScreenCapture } from "expo-screen-capture";
@@ -33,7 +32,7 @@ function AppTile({ size = 92 }: { size?: number }) {
 function Feature({ icon, title, body, index }: { icon: IconName; title: string; body: string; index: number }) {
   const c = useColors();
   return (
-    <Animated.View entering={FadeInDown.delay(180 + index * 90).duration(duration.slow).easing(ease.out)} style={{ flexDirection: "row", gap: space.lg, alignItems: "flex-start" }}>
+    <View style={{ flexDirection: "row", gap: space.lg, alignItems: "flex-start" }}>
       <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
         <Icon name={icon} size={24} color={c.tintText} />
       </View>
@@ -41,7 +40,7 @@ function Feature({ icon, title, body, index }: { icon: IconName; title: string; 
         <T v="headline">{title}</T>
         <T v="footnote" color="textSecondary">{body}</T>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -127,7 +126,7 @@ export default function Welcome() {
 
         {mode === "intro" && (
           <>
-            <Animated.View entering={FadeIn.duration(duration.slow).easing(ease.out)} style={{ alignItems: "center", gap: space.lg, paddingTop: space.xl }}>
+            <View style={{ alignItems: "center", gap: space.lg, paddingTop: space.xl }}>
               <AppTile />
               <View style={{ alignItems: "center", gap: 6 }}>
                 <T v="largeTitle" style={{ textAlign: "center" }}>Welcome to JanSetu</T>
@@ -136,10 +135,10 @@ export default function Welcome() {
               <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: c.warningTint }}>
                 <T v="caption" style={{ color: c.warning, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8 }}>PREVIEW NETWORK</T>
               </View>
-            </Animated.View>
+            </View>
             <View style={{ gap: space.xl, paddingTop: space.md }}>
               <Feature index={0} icon="shield" title="You hold the keys" body="Your wallet lives on this phone, locked with your fingerprint, face or PIN. Nobody else can move your money." />
-              <Feature index={1} icon="savings" title="Save in small steps" body="Daily, recurring and fixed deposits. Your savings stay visible and yours." />
+              <Feature index={1} icon="savings" title="Save in small steps" body="Daily savings, monthly plans and fixed deposits. Your savings stay visible and yours." />
               <Feature index={2} icon="bridge" title="Cash with local agents" body="Put cash in and take it out through verified agents near you." />
             </View>
             {busy ? <Banner title="Creating your wallet" body="This can take up to a minute on an older phone. Please keep the app open." /> : null}
@@ -148,7 +147,7 @@ export default function Welcome() {
         )}
 
         {mode === "show" && (
-          <Animated.View entering={FadeIn.duration(duration.base).easing(ease.out)} style={{ gap: space.xl }}>
+          <View style={{ gap: space.xl }}>
             <View style={{ gap: space.md }}>
               <Steps step={1} />
               <T v="title1">Your recovery phrase</T>
@@ -190,11 +189,11 @@ export default function Welcome() {
                 </View>
               ))}
             </View>
-          </Animated.View>
+          </View>
         )}
 
         {mode === "verify" && (
-          <Animated.View entering={FadeIn.duration(duration.base).easing(ease.out)} style={{ gap: space.xl }}>
+          <View style={{ gap: space.xl }}>
             <View style={{ gap: space.md }}>
               <Steps step={2} />
               <T v="title1">Check your paper</T>
@@ -221,11 +220,11 @@ export default function Welcome() {
                 {picked[k] && picked[k] !== words[idx] ? <T v="footnote" style={{ color: c.error }}>Not quite. Check your paper and try again.</T> : null}
               </View>
             ))}
-          </Animated.View>
+          </View>
         )}
 
         {mode === "restore" && (
-          <Animated.View entering={FadeIn.duration(duration.base).easing(ease.out)} style={{ gap: space.xl }}>
+          <View style={{ gap: space.xl }}>
             <View style={{ gap: space.md }}>
               <T v="title1">Restore your wallet</T>
               <T v="body" color="textSecondary">Type your 12 recovery words in order, with a space between each.</T>
@@ -236,7 +235,7 @@ export default function Welcome() {
             <T v="footnote" color="textSecondary">{Math.min(12, input.trim() ? input.trim().split(/\s+/).length : 0)} of 12 words</T>
             {busy ? <Banner title="Restoring your wallet" body="This can take up to a minute on an older phone." /> : null}
             {err ? <Banner kind="error" title="Couldn't restore" body={err} /> : null}
-          </Animated.View>
+          </View>
         )}
       </ScrollView>
       {footer}
