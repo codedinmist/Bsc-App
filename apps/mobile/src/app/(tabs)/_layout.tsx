@@ -1,23 +1,22 @@
-import { Redirect, Tabs } from "expo-router";
+import { View } from "react-native";
+import { Redirect, Slot } from "expo-router";
 import { useColors } from "@/design/tokens";
 import { useWallet } from "@/wallet/WalletProvider";
 import { FloatingTabBar } from "@/ui/FloatingTabBar";
 
+/**
+ * The five main screens share one simple frame: the current screen on top, the pill bar below.
+ * No tab navigator and no screen detaching, so switching screens is just opening a screen.
+ */
 export default function TabsLayout() {
   const c = useColors();
   const { status } = useWallet();
   if (status === "none") return <Redirect href="/welcome" />;
   if (status === "loading") return null;
   return (
-    <Tabs
-      tabBar={(p) => <FloatingTabBar {...p} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.bg } }}
-    >
-      <Tabs.Screen name="index" options={{ title: "Home" }} />
-      <Tabs.Screen name="savings" options={{ title: "Save" }} />
-      <Tabs.Screen name="pay" options={{ title: "Pay" }} />
-      <Tabs.Screen name="credit" options={{ title: "Borrow" }} />
-      <Tabs.Screen name="more" options={{ title: "More" }} />
-    </Tabs>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <Slot />
+      <FloatingTabBar />
+    </View>
   );
 }
